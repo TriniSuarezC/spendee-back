@@ -6,7 +6,7 @@ async function budgetProjectionCalculator(budget) {
   const end = truncateToDate(new Date(budget.fechaFin))
 
   const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24) + 1)
-  const daysPassed = Math.floor((today - start) / (1000 * 60 * 60 * 24))
+  const daysPassed = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1
 
   const actualExpense = budget.PresupuestoCategoria.reduce(
     (sum, cat) => sum + cat.gastado,
