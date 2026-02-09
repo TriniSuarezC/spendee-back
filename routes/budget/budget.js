@@ -95,6 +95,37 @@ router.get("/", validateToken, async (req, res) => {
       pastBudgets.map(calcularGastos),
     )
 
+    let stats = {}
+
+    if (pastBudgetsConDatos.length >= 3) {
+      const lastPastBudgets = pastBudgetsConDatos
+        .sort((a, b) => new Date(b.fechaFin) - new Date(a.fechaFin))
+        .slice(0, 3)
+
+      const historicalStats = lastPastBudgets.map((budget) => {
+        const totalSpent = budget.PresupuestoCategoria.reduce(
+          (acc, c) => acc + c.gastado,
+          0,
+        )
+
+        const days =
+          (new Date(budget.fechaFin) - new Date(budget.fechaInicio)) /
+            (1000 * 60 * 60 * 24) +
+          1
+
+        return {
+          budgetId: budget.id,
+          totalSpent,
+          totalDays: days,
+          avgDailySpend: totalSpent / days,
+        }
+      })
+
+      stats = {
+        historical: historicalStats,
+      }
+    }
+
     let currentBudgetConDatos = null
     if (currentBudget) {
       currentBudgetConDatos = await calcularGastos(currentBudget)
@@ -126,12 +157,13 @@ router.get("/", validateToken, async (req, res) => {
 
       return fechas
     })
-    console.log("HOLA", currentBudgetConDatos)
+    console.log(stats)
     return res.json({
       futureBudgets: futureBudgetsConDatos,
       currentBudget: currentBudgetConDatos,
       pastBudgets: pastBudgetsConDatos,
       allBudgetDates,
+      stats,
     })
   } catch (error) {
     console.error("Error al obtener presupuestos:", error)
