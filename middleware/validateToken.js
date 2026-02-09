@@ -44,8 +44,8 @@ async function validateToken(req, res, next) {
         algorithms: ["RS256"],
         issuer: comesFromApi
           ? "spendee-back"
-          : "https://securetoken.google.com/spendee-7d662",
-        audience: comesFromApi ? "spendee-api" : "spendee-7d662",
+          : "https://securetoken.google.com/spendee-ae783",
+        audience: comesFromApi ? "spendee-api" : "spendee-ae783",
       },
       (err, verifiedPayload) => {
         if (err) {
