@@ -3,6 +3,7 @@ const router = express.Router()
 const { PrismaClient } = require("@prisma/client")
 const truncateToDate = require("../../helpers/truncateToDate.js")
 const validateToken = require("../../middleware/validateToken.js")
+const budgetProjectionCalculator = require("../../helpers/budgetProjectionCalculator.js")
 
 const prisma = new PrismaClient()
 
@@ -94,9 +95,13 @@ router.get("/", validateToken, async (req, res) => {
       pastBudgets.map(calcularGastos),
     )
 
-    const currentBudgetConDatos = currentBudget
-      ? await calcularGastos(currentBudget)
-      : null
+    let currentBudgetConDatos = null
+    if (currentBudget) {
+      currentBudgetConDatos = await calcularGastos(currentBudget)
+      currentBudgetConDatos.projection = await budgetProjectionCalculator(
+        currentBudgetConDatos,
+      )
+    }
 
     const futureBudgetsConDatos = await Promise.all(
       futureBudgets.map(calcularGastos),
@@ -121,6 +126,7 @@ router.get("/", validateToken, async (req, res) => {
 
       return fechas
     })
+    console.log("HOLA", currentBudgetConDatos)
     return res.json({
       futureBudgets: futureBudgetsConDatos,
       currentBudget: currentBudgetConDatos,

@@ -159,7 +159,6 @@ app.get("/racha/:userId", validateToken, async (req, res) => {
     const racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
     })
-    console.log("Racha encontrada:", racha)
     if (!racha) {
       console.log("No se encontró racha, creando una nueva con valor 0")
       racha = await prisma.racha.create({
@@ -193,8 +192,8 @@ if (require.main === module) {
   })
 }
 
-//module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+//module.exports = app
 
 /* 
 app.get("/ingreso/:userId", validateToken, async (req, res) => {
