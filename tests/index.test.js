@@ -1,5 +1,7 @@
 const request = require("supertest")
 const getRandomObjectives = require("../helpers/getRandomObjectives.js")
+const budgetProjectionCalculator = require("../helpers/budgetProjectionCalculator.js")
+const truncateToDate = require("../helpers/truncateToDate.js")
 
 jest.mock("@prisma/client", () => {
   const mPrisma = {
@@ -65,6 +67,7 @@ jest.mock("../middleware/validateToken.js", () => {
     next()
   }
 })
+jest.mock("../helpers/truncateToDate.js", () => jest.fn())
 
 const app = require("../index")
 const { PrismaClient, mockedPrisma } = require("@prisma/client")
@@ -843,5 +846,109 @@ describe("POST /cron/update-rachas", () => {
 
     expect(res.statusCode).toBe(500)
     expect(res.body).toEqual({ error: "Error actualizando rachas" })
+  })
+})
+
+describe("budgetProjectionCalculator", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it("Debe calcular correctamente los valores básicos del presupuesto", async () => {
+    // today = 2026-01-05
+    truncateToDate
+      .mockImplementationOnce(() => new Date("2026-01-05")) // today
+      .mockImplementationOnce(() => new Date("2026-01-01")) // start
+      .mockImplementationOnce(() => new Date("2026-01-10")) // end
+
+    const budget = {
+      fechaInicio: "2026-01-01",
+      fechaFin: "2026-01-10",
+      monto: 1000,
+      PresupuestoCategoria: [{ gastado: 100 }, { gastado: 200 }],
+    }
+
+    const result = await budgetProjectionCalculator(budget)
+
+    expect(result.actualExpense).toBe(300)
+    expect(result.daysPassed).toBe(5)
+    expect(result.totalDays).toBe(10)
+    expect(result.dailyAverageExpense).toBeCloseTo(60)
+    expect(result.projectedTotalExpense).toBeCloseTo(600)
+    expect(result.expenseOverBudget).toBeCloseTo(60)
+  })
+  it("Debe devolver gastos en 0 cuando no hay categorías", async () => {
+    truncateToDate
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-10"))
+
+    const budget = {
+      fechaInicio: "2026-01-01",
+      fechaFin: "2026-01-10",
+      monto: 1000,
+      PresupuestoCategoria: [],
+    }
+
+    const result = await budgetProjectionCalculator(budget)
+
+    expect(result.actualExpense).toBe(0)
+    expect(result.dailyAverageExpense).toBe(0)
+    expect(result.projectedTotalExpense).toBe(0)
+    expect(result.expenseOverBudget).toBe(0)
+  })
+  it("Debe devolver expenseOverBudget en 0 cuando el monto del presupuesto es 0", async () => {
+    truncateToDate
+      .mockImplementationOnce(() => new Date("2026-01-03"))
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-10"))
+
+    const budget = {
+      fechaInicio: "2026-01-01",
+      fechaFin: "2026-01-10",
+      monto: 0,
+      PresupuestoCategoria: [{ gastado: 100 }],
+    }
+
+    const result = await budgetProjectionCalculator(budget)
+
+    expect(result.expenseOverBudget).toBe(0)
+  })
+  it("Debe manejar correctamente cuando hoy es anterior a la fecha de inicio", async () => {
+    truncateToDate
+      .mockImplementationOnce(() => new Date("2025-12-30"))
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-10"))
+
+    const budget = {
+      fechaInicio: "2026-01-01",
+      fechaFin: "2026-01-10",
+      monto: 1000,
+      PresupuestoCategoria: [{ gastado: 100 }],
+    }
+
+    const result = await budgetProjectionCalculator(budget)
+
+    expect(result.daysPassed).toBeLessThanOrEqual(0)
+    expect(result.dailyAverageExpense).toBe(100)
+  })
+  it("Debe calcular correctamente cuando el presupuesto dura un solo día", async () => {
+    truncateToDate
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+      .mockImplementationOnce(() => new Date("2026-01-01"))
+
+    const budget = {
+      fechaInicio: "2026-01-01",
+      fechaFin: "2026-01-01",
+      monto: 200,
+      PresupuestoCategoria: [{ gastado: 50 }],
+    }
+
+    const result = await budgetProjectionCalculator(budget)
+
+    expect(result.totalDays).toBe(1)
+    expect(result.daysPassed).toBe(1)
+    expect(result.projectedTotalExpense).toBe(50)
   })
 })
