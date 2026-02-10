@@ -2,6 +2,11 @@ const request = require("supertest")
 const getRandomObjectives = require("../helpers/getRandomObjectives.js")
 const budgetProjectionCalculator = require("../helpers/budgetProjectionCalculator.js")
 const truncateToDate = require("../helpers/truncateToDate.js")
+const { generateCode, hashCode } = require("../helpers/code.js")
+const {
+  generateRefreshToken,
+  hashRefreshToken,
+} = require("../helpers/refresh.js")
 
 jest.mock("@prisma/client", () => {
   const mPrisma = {
@@ -950,5 +955,97 @@ describe("budgetProjectionCalculator", () => {
     expect(result.totalDays).toBe(1)
     expect(result.daysPassed).toBe(1)
     expect(result.projectedTotalExpense).toBe(50)
+  })
+})
+
+describe("generateCode", () => {
+  it("debería generar un código hexadecimal", () => {
+    const code = generateCode()
+
+    expect(typeof code).toBe("string")
+    expect(code).toMatch(/^[0-9a-f]+$/)
+  })
+
+  it("debería tener longitud 64 bytes en hex (32 bytes)", () => {
+    const code = generateCode()
+
+    expect(code.length).toBe(64)
+  })
+
+  it("debería generar códigos distintos en cada llamada", () => {
+    const code1 = generateCode()
+    const code2 = generateCode()
+
+    expect(code1).not.toBe(code2)
+  })
+})
+
+describe("hashCode", () => {
+  it("debería devolver un hash sha256 en formato hexadecimal", () => {
+    const hash = hashCode("test-code")
+
+    expect(typeof hash).toBe("string")
+    expect(hash).toMatch(/^[0-9a-f]+$/)
+    expect(hash.length).toBe(64)
+  })
+
+  it("debería ser determinístico para el mismo input", () => {
+    const hash1 = hashCode("same-code")
+    const hash2 = hashCode("same-code")
+
+    expect(hash1).toBe(hash2)
+  })
+
+  it("debería generar hashes distintos para inputs distintos", () => {
+    const hash1 = hashCode("code-1")
+    const hash2 = hashCode("code-2")
+
+    expect(hash1).not.toBe(hash2)
+  })
+})
+
+describe("generateRefreshToken", () => {
+  it("debería generar un token en formato hexadecimal", () => {
+    const token = generateRefreshToken()
+
+    expect(typeof token).toBe("string")
+    expect(token).toMatch(/^[0-9a-f]+$/)
+  })
+
+  it("debería tener longitud 96 caracteres (48 bytes)", () => {
+    const token = generateRefreshToken()
+
+    expect(token.length).toBe(96)
+  })
+
+  it("debería generar tokens distintos en cada llamada", () => {
+    const token1 = generateRefreshToken()
+    const token2 = generateRefreshToken()
+
+    expect(token1).not.toBe(token2)
+  })
+})
+
+describe("hashRefreshToken", () => {
+  it("debería devolver un hash sha256 en formato hexadecimal", () => {
+    const hash = hashRefreshToken("refresh-token")
+
+    expect(typeof hash).toBe("string")
+    expect(hash).toMatch(/^[0-9a-f]+$/)
+    expect(hash.length).toBe(64)
+  })
+
+  it("debería ser determinístico para el mismo token", () => {
+    const hash1 = hashRefreshToken("same-token")
+    const hash2 = hashRefreshToken("same-token")
+
+    expect(hash1).toBe(hash2)
+  })
+
+  it("debería generar hashes distintos para tokens distintos", () => {
+    const hash1 = hashRefreshToken("token-1")
+    const hash2 = hashRefreshToken("token-2")
+
+    expect(hash1).not.toBe(hash2)
   })
 })
