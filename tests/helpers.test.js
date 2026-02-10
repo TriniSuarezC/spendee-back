@@ -19,7 +19,7 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
 describe("truncateToDate", () => {
-  it("debe truncar la fecha a las 00:00:00", () => {
+  it("deberia truncar la fecha a las 00:00:00", () => {
     const date = new Date("2024-05-15T18:45:30")
     const result = truncateToDate(date)
 
@@ -39,7 +39,7 @@ describe("budgetProjectionCalculator", () => {
     jest.useRealTimers()
   })
 
-  it("calcula correctamente la proyección del presupuesto", async () => {
+  it("deberia calcular correctamente la proyección del presupuesto", async () => {
     const budget = {
       fechaInicio: "2024-05-01",
       fechaFin: "2024-05-31",
@@ -59,13 +59,13 @@ describe("budgetProjectionCalculator", () => {
 })
 
 describe("generateCode & hashCode", () => {
-  it("genera un código hexadecimal de 64 caracteres", () => {
+  it("deberia generar un código hexadecimal de 64 caracteres", () => {
     const code = generateCode()
 
     expect(code).toMatch(/^[a-f0-9]{64}$/)
   })
 
-  it("hashea correctamente un código", () => {
+  it("deberia hashear correctamente un código", () => {
     const code = "test-code"
     const hash = hashCode(code)
 
@@ -81,14 +81,14 @@ describe("generateCode & hashCode", () => {
 })
 
 describe("generateRefreshToken & hashRefreshToken", () => {
-  it("genera un refresh token hexadecimal largo", () => {
+  it("deberia generar un refresh token hexadecimal largo", () => {
     const token = generateRefreshToken()
 
     expect(token).toMatch(/^[a-f0-9]+$/)
     expect(token.length).toBe(96)
   })
 
-  it("hashea correctamente el refresh token", () => {
+  it("deberia hashear correctamente el refresh token", () => {
     const token = "refresh-token"
     const hash = hashRefreshToken(token)
 
@@ -98,7 +98,7 @@ describe("generateRefreshToken & hashRefreshToken", () => {
 })
 
 describe("getRandomObjectives", () => {
-  it("devuelve la cantidad pedida excluyendo IDs", async () => {
+  it("deberia devolver la cantidad pedida excluyendo IDs", async () => {
     prisma.objetivo.findMany.mockResolvedValue([
       { id: 1 },
       { id: 2 },
@@ -114,7 +114,7 @@ describe("getRandomObjectives", () => {
     })
   })
 
-  it("lanza error si no hay suficientes objetivos", async () => {
+  it("deberia lanzar error si no hay suficientes objetivos", async () => {
     prisma.objetivo.findMany.mockResolvedValue([{ id: 1 }])
 
     await expect(getRandomObjectives(2)).rejects.toThrow(
