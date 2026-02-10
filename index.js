@@ -8,7 +8,6 @@ const app = express()
 
 app.use(express.json())
 
-// Mount API routes protected by APISecret (x-api-key + x-api-user-id)
 const apiRouter = require("./routes/api.js")
 app.use("/api", apiRouter)
 
@@ -49,7 +48,6 @@ app.get("/test-jwt", validateToken, (req, res) => {
     usuario: req.usuario,
   })
 })
-//get API ID
 app.get("/getApiId", validateToken, async (req, res) => {
   const uid = req.user?.sub || req.user?.user_id || req.user?.uid
   console.log("Obteniendo API User ID:", uid)
@@ -99,7 +97,6 @@ app.post("/generateApiSecret", validateToken, async (req, res) => {
       })
     }
 
-    // Devolver el secret en texto plano al usuario
     res.json({ apiSecret })
   } catch (error) {
     console.error("Error generando API Secret:", error)
@@ -177,7 +174,6 @@ app.get("/racha/:userId", validateToken, async (req, res) => {
   }
 })
 
-//ruta inicial /
 app.get("/", (req, res) => {
   res.status(200).send("Spendee API is running")
 })
@@ -191,17 +187,3 @@ if (require.main === module) {
 
 // module.exports = serverless(app)
 module.exports = app
-
-/* 
-app.get("/ingreso/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params
-  try {
-    const userIncomes = await prisma.ingreso.findMany({
-      where: { usuarioId: userId },
-    })
-    res.status(200).json(userIncomes)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-*/
