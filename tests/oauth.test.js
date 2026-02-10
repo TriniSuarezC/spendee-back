@@ -60,7 +60,7 @@ describe("OAuth routes", () => {
   })
 
   describe("POST /oauth/code", () => {
-    it("genera un código OAuth y devuelve redirect", async () => {
+    it("deberia generar un código OAuth y devuelve redirect", async () => {
       prisma.oAuthCode.create.mockResolvedValue({})
 
       const res = await request(app).post("/oauth/code")
@@ -70,7 +70,7 @@ describe("OAuth routes", () => {
       expect(res.body.redirect).toContain("code=CODE123")
     })
 
-    it("devuelve 400 si no hay userId", async () => {
+    it("deberia devolver 400 si no hay userId", async () => {
       require("../middleware/validateToken").mockImplementationOnce(
         (req, res, next) => {
           req.user = {}
@@ -85,7 +85,7 @@ describe("OAuth routes", () => {
   })
 
   describe("POST /oauth/token", () => {
-    it("intercambia código válido por access y refresh token", async () => {
+    it("deberia intercambiar código válido por access y refresh token", async () => {
       prisma.oAuthCode.findFirst.mockResolvedValue({
         id: 1,
         userId: "user-test-123",
@@ -105,7 +105,7 @@ describe("OAuth routes", () => {
       expect(res.body.refresh_token).toBe("REFRESH123")
     })
 
-    it("rechaza código inexistente", async () => {
+    it("deberia rechazar código inexistente", async () => {
       prisma.oAuthCode.findFirst.mockResolvedValue(null)
 
       const res = await request(app)
@@ -115,7 +115,7 @@ describe("OAuth routes", () => {
       expect(res.status).toBe(400)
     })
 
-    it("rechaza código usado", async () => {
+    it("deberia rechazar código usado", async () => {
       prisma.oAuthCode.findFirst.mockResolvedValue({
         used: true,
       })
@@ -127,7 +127,7 @@ describe("OAuth routes", () => {
       expect(res.status).toBe(400)
     })
 
-    it("rechaza código expirado", async () => {
+    it("deberia rechazar código expirado", async () => {
       prisma.oAuthCode.findFirst.mockResolvedValue({
         used: false,
         expiresAt: new Date(Date.now() - 1000),
@@ -142,7 +142,7 @@ describe("OAuth routes", () => {
   })
 
   describe("POST /oauth/refresh", () => {
-    it("renueva access y refresh token válidos", async () => {
+    it("deberia renovar access y refresh token válidos", async () => {
       prisma.refreshToken.findUnique.mockResolvedValue({
         id: 1,
         userId: "user-test-123",
@@ -162,7 +162,7 @@ describe("OAuth routes", () => {
       expect(res.body.refresh_token).toBe("REFRESH123")
     })
 
-    it("rechaza refresh token inválido", async () => {
+    it("deberia rechazar refresh token inválido", async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null)
 
       const res = await request(app)
@@ -172,7 +172,7 @@ describe("OAuth routes", () => {
       expect(res.status).toBe(400)
     })
 
-    it("rechaza refresh token expirado", async () => {
+    it("deberia rechazar refresh token expirado", async () => {
       prisma.refreshToken.findUnique.mockResolvedValue({
         expiresAt: new Date(Date.now() - 1000),
       })
@@ -184,7 +184,7 @@ describe("OAuth routes", () => {
       expect(res.status).toBe(400)
     })
 
-    it("devuelve 400 si falta refresh_token", async () => {
+    it("deberia devolver 400 si falta refresh_token", async () => {
       const res = await request(app).post("/oauth/refresh")
       expect(res.status).toBe(500)
     })
