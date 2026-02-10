@@ -217,6 +217,148 @@ describe("GET /balance/userId", () => {
   })
 })
 
+describe("GET /balance/agrupado", () => {
+  let prisma
+  beforeEach(() => {
+    prisma = mockedPrisma
+  })
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it("debería devolver array vacío si no hay ingresos ni gastos", async () => {
+    prisma.gasto.findMany.mockResolvedValue([])
+    prisma.ingreso.findMany.mockResolvedValue([])
+
+    const res = await request(app).get("/balance/agrupado")
+
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual([])
+  })
+
+  it("debería agrupar ingresos y gastos por mes (default)", async () => {
+    prisma.gasto.findMany.mockResolvedValue([
+      {
+        id: 1,
+        usuarioId: "user-123",
+        gasto: 100,
+        fecha: new Date("2024-01-10"),
+        montoAnterior: null,
+        categoriaId: 2,
+      },
+    ])
+
+    prisma.ingreso.findMany.mockResolvedValue([
+      {
+        id: 2,
+        usuarioId: "user-123",
+        ingreso: 300,
+        fecha: new Date("2024-01-15"),
+        montoAnterior: null,
+      },
+    ])
+
+    const res = await request(app).get("/balance/agrupado")
+
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+
+    const group = res.body[0]
+
+    expect(group.period).toBe("2024-01")
+    expect(group.totalIngresos).toBe(300)
+    expect(group.totalEgresos).toBe(100)
+    expect(group.items).toHaveLength(2)
+  })
+
+  it("debería ordenar por periodo asc por defecto", async () => {
+    prisma.gasto.findMany.mockResolvedValue([
+      {
+        id: 1,
+        usuarioId: "user-123",
+        gasto: 50,
+        fecha: new Date("2024-02-10"),
+        montoAnterior: null,
+        categoriaId: 1,
+      },
+      {
+        id: 2,
+        usuarioId: "user-123",
+        gasto: 70,
+        fecha: new Date("2024-01-10"),
+        montoAnterior: null,
+        categoriaId: 1,
+      },
+    ])
+
+    prisma.ingreso.findMany.mockResolvedValue([])
+
+    const res = await request(app).get("/balance/agrupado")
+
+    expect(res.status).toBe(200)
+    expect(res.body[0].period).toBe("2024-01")
+    expect(res.body[1].period).toBe("2024-02")
+  })
+
+  it("debería ordenar por periodo desc si order=desc", async () => {
+    prisma.gasto.findMany.mockResolvedValue([
+      {
+        id: 1,
+        usuarioId: "user-123",
+        gasto: 50,
+        fecha: new Date("2024-01-10"),
+        montoAnterior: null,
+        categoriaId: 1,
+      },
+      {
+        id: 2,
+        usuarioId: "user-123",
+        gasto: 70,
+        fecha: new Date("2024-02-10"),
+        montoAnterior: null,
+        categoriaId: 1,
+      },
+    ])
+
+    prisma.ingreso.findMany.mockResolvedValue([])
+
+    const res = await request(app).get("/balance/agrupado?order=desc")
+
+    expect(res.status).toBe(200)
+    expect(res.body[0].period).toBe("2024-02")
+    expect(res.body[1].period).toBe("2024-01")
+  })
+
+  it("debería respetar startDate y endDate", async () => {
+    prisma.gasto.findMany.mockResolvedValue([])
+    prisma.ingreso.findMany.mockResolvedValue([])
+
+    await request(app).get(
+      "/balance/agrupado?startDate=2024-01-01&endDate=2024-01-31",
+    )
+
+    expect(prisma.gasto.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          fecha: {
+            gte: new Date("2024-01-01"),
+            lte: new Date("2024-01-31"),
+          },
+        }),
+      }),
+    )
+  })
+
+  it("debería devolver 500 si ocurre un error inesperado", async () => {
+    prisma.gasto.findMany.mockRejectedValue(new Error("DB exploded"))
+
+    const res = await request(app).get("/balance/agrupado")
+
+    expect(res.status).toBe(500)
+    expect(res.body.error).toBe("Internal server error")
+  })
+})
+
 describe("POST /ingreso", () => {
   let prisma
   beforeEach(() => {
