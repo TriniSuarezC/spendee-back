@@ -152,11 +152,8 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
 
 app.get("/racha/:userId", validateToken, async (req, res) => {
   const { userId } = req.params
-  // if (isNaN(userId)) {
-  //   return res.status(400).json({ error: "userId inválido" })
-  // }
   try {
-    const racha = await prisma.racha.findUnique({
+    let racha = await prisma.racha.findUnique({
       where: { usuarioId: userId },
     })
     if (!racha) {
@@ -192,8 +189,8 @@ if (require.main === module) {
   })
 }
 
-module.exports = serverless(app)
-//module.exports = app
+// module.exports = serverless(app)
+module.exports = app
 
 /* 
 app.get("/ingreso/:userId", validateToken, async (req, res) => {

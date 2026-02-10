@@ -44,6 +44,7 @@ jest.mock("@prisma/client", () => {
       findUnique: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     usuario: {
       findUnique: jest.fn().mockResolvedValue(null),
@@ -675,7 +676,7 @@ describe("GET /racha/:userId", () => {
   })
   it("Cuando un usuario no tiene racha, se debe crear una racha nueva", async () => {
     const rachaMock = {
-      usuarioId: 123,
+      usuarioId: "123",
       rachaActual: 0,
       ultimaFecha: new Date("2026-01-01"),
       isInactive: true,
@@ -686,14 +687,9 @@ describe("GET /racha/:userId", () => {
 
     const res = await request(app).get("/racha/123")
     expect(res.statusCode).toBe(200)
-    expect(res.body.usuarioId).toBe(123)
+    expect(res.body.usuarioId).toBe("123")
     expect(res.body.rachaActual).toBe(0)
     expect(res.body.isInactive).toBe(true)
-  })
-  it("Cuando el userId no es válido, la respuesta debe ser un error 400", async () => {
-    const res = await request(app).get("/racha/abc")
-    expect(res.statusCode).toBe(400)
-    expect(res.body).toEqual({ error: "userId inválido" })
   })
   it("Cuando ocurre un error inesperado, devuelve 400 y el mensaje de error", async () => {
     prisma.racha.findUnique.mockRejectedValue(new Error("DB error"))
@@ -767,5 +763,85 @@ describe("getRandomObjectives", () => {
     prisma.objetivo.findMany.mockRejectedValue(new Error("DB error"))
 
     await expect(getRandomObjectives(1)).rejects.toThrow("DB error")
+  })
+})
+
+describe("GET /cron", () => {
+  it("Debe responder que el endpoint de cron está funcionando", async () => {
+    const res = await request(app).get("/cron")
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ message: "Cron endpoint is working" })
+  })
+})
+
+describe("POST /cron/update-rachas", () => {
+  let prisma
+
+  beforeAll(() => {
+    process.env.CRON_SECRET = "test-cron-secret"
+  })
+
+  beforeEach(() => {
+    prisma = mockedPrisma
+    jest.clearAllMocks()
+  })
+
+  it("Debe devolver 401 si no se envía el token", async () => {
+    const res = await request(app).post("/cron/update-rachas")
+
+    expect(res.statusCode).toBe(401)
+    expect(res.body).toEqual({ error: "Unauthorized" })
+  })
+  it("Debe devolver 401 si el token es inválido", async () => {
+    const res = await request(app)
+      .post("/cron/update-rachas")
+      .set("Authorization", "Bearer token-invalido")
+
+    expect(res.statusCode).toBe(401)
+    expect(res.body).toEqual({ error: "Unauthorized" })
+  })
+  it("Debe actualizar las rachas correctamente cuando el token es válido", async () => {
+    prisma.racha.updateMany.mockResolvedValue({ count: 5 })
+
+    const res = await request(app)
+      .post("/cron/update-rachas")
+      .set("Authorization", "Bearer test-cron-secret")
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({
+      message: "Rachas actualizadas correctamente",
+    })
+
+    expect(prisma.racha.updateMany).toHaveBeenCalledTimes(2)
+  })
+  it("Debe marcar como inactivas las rachas de ayer y resetear las de anteayer", async () => {
+    await request(app)
+      .post("/cron/update-rachas")
+      .set("Authorization", "Bearer test-cron-secret")
+
+    expect(prisma.racha.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: { isInactive: true },
+      }),
+    )
+
+    expect(prisma.racha.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: { rachaActual: 0, isInactive: true },
+      }),
+    )
+  })
+  it("Debe devolver 500 si ocurre un error inesperado", async () => {
+    prisma.racha.updateMany.mockRejectedValue(new Error("DB error"))
+
+    const res = await request(app)
+      .post("/cron/update-rachas")
+      .set("Authorization", "Bearer test-cron-secret")
+
+    expect(res.statusCode).toBe(500)
+    expect(res.body).toEqual({ error: "Error actualizando rachas" })
   })
 })

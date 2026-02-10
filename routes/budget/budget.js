@@ -157,7 +157,6 @@ router.get("/", validateToken, async (req, res) => {
 
       return fechas
     })
-    console.log(currentBudgetConDatos)
     return res.json({
       futureBudgets: futureBudgetsConDatos,
       currentBudget: currentBudgetConDatos,
