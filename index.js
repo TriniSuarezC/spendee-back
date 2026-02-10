@@ -11,9 +11,6 @@ app.use(express.json())
 const apiRouter = require("./routes/api.js")
 app.use("/api", apiRouter)
 
-const authRouter = require("./routes/auth.js")
-app.use("/auth", authRouter)
-
 const oauthRouter = require("./oauth/routes.js")
 app.use("/oauth", oauthRouter)
 
