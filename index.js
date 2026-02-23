@@ -182,5 +182,5 @@ if (require.main === module) {
   })
 }
 
-// module.exports = serverless(app)
-module.exports = app
+module.exports = serverless(app)
+// module.exports = app
