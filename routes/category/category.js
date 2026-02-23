@@ -32,7 +32,10 @@ router.post("/customCategory", validateToken, async (req, res) => {
 router.get("/", validateToken, async (req, res) => {
   const { month, year } = req.query
   try {
-    const uid = req.user?.sub || req.user?.user_id || req.user?.uid
+    const uid = req.user.user_id
+    if (!uid) {
+      return res.status(401).json({ error: "Unauthorized: No user ID found" })
+    }
 
     const categorias = await prisma.categorias.findMany({
       where: { OR: [{ usuarioId: "0" }, { usuarioId: uid }] },

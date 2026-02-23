@@ -183,7 +183,7 @@ router.post("/", validateToken, async (req, res) => {
     const categoriasDelUsuario = await prisma.categorias.findMany({
       where: {
         id: { in: categoriaIds },
-        usuarioId: usuarioId,
+        OR: [{ usuarioId: usuarioId }, { usuarioId: "0" }],
       },
       select: { id: true },
     })
@@ -193,6 +193,7 @@ router.post("/", validateToken, async (req, res) => {
         error: "Una o más categorías no te pertenecen o no existen",
       })
     }
+
     const newBudget = await prisma.presupuesto.create({
       data: {
         usuarioId,
@@ -217,13 +218,14 @@ router.post("/", validateToken, async (req, res) => {
 router.delete("/:id", validateToken, async (req, res) => {
   const { id } = req.params
   try {
+    const deletedBudget = await prisma.presupuesto.delete({
+      where: { id: parseInt(id), usuarioId: req.user.user_id },
+    })
     const deletedPresupuestoCategorias =
       await prisma.presupuestoCategoria.deleteMany({
         where: { presupuestoId: parseInt(id) },
       })
-    const deletedBudget = await prisma.presupuesto.delete({
-      where: { id: parseInt(id), usuarioId: req.user.user_id },
-    })
+
     res
       .status(200)
       .json({ message: "Presupuesto eliminado correctamente", deletedBudget })
