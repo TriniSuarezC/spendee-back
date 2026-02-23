@@ -144,17 +144,17 @@ app.get("/hasAPISecret", validateToken, async (req, res) => {
   }
 })
 
-app.get("/racha/:userId", validateToken, async (req, res) => {
-  const { userId } = req.params
+app.get("/racha", validateToken, async (req, res) => {
+  const userIdFromToken = req.user?.sub || req.user?.user_id || req.user?.uid
   try {
     let racha = await prisma.racha.findUnique({
-      where: { usuarioId: userId },
+      where: { usuarioId: userIdFromToken },
     })
     if (!racha) {
       console.log("No se encontró racha, creando una nueva con valor 0")
       racha = await prisma.racha.create({
         data: {
-          usuarioId: userId,
+          usuarioId: userIdFromToken,
           rachaActual: 0,
           ultimaFecha: (() => {
             const ayer = new Date()
