@@ -24,7 +24,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("../middleware/validateToken", () =>
   jest.fn((req, _res, next) => {
-    req.user = { sub: "user-123" }
+    req.user = { user_id: "user-123" }
     next()
   }),
 )
@@ -135,7 +135,7 @@ describe("Piggy routes", () => {
       })
 
       getRandomObjectives.mockResolvedValue([{ id: 99 }])
-      prisma.$transaction.mockResolvedValue()
+      prisma.$transaction.mockResolvedValue([])
 
       const res = await request(app)
         .get("/piggy/checkObjective")
